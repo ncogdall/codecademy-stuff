@@ -1,0 +1,190 @@
+import codecademylib
+#import pandas & matplotlib
+import pandas as pd
+from matplotlib import pyplot as plt
+
+# Loading the Data
+species = pd.read_csv('species_info.csv')
+
+# print species.head()
+print species.head()
+
+# How many different species are in the species DataFrame?
+species_count = species.scientific_name.nunique()
+# What are the different values of category in the DataFrame species?
+species_type = species.category.unique()
+print species_type
+#What are the different values of conservation_status?
+conservation_statuses = species.conservation_status.unique()
+
+#Use groupby to count how many scientific_name falls into each conservation_status criteria. Print it.
+conservation_counts = species.groupby('conservation_status').scientific_name.nunique().reset_index()
+
+print conservation_counts
+
+#Paste the following code into the workspace and run it to replace NaN in our DataFrame with 'No Intervention':
+species.fillna('No Intervention', inplace = True)
+
+conservation_counts_fixed = species.groupby('conservation_status').scientific_name.nunique().reset_index()
+
+print conservation_counts_fixed
+
+print len(species)
+
+#Paste the following code and run it to create a new DataFrame called protection_counts, which is sorted by scientific_name:
+protection_counts = species.groupby('conservation_status')\
+    .scientific_name.nunique().reset_index()\
+    .sort_values(by='scientific_name')
+
+#Now let's create a bar chart!
+plt.figure(figsize=(10, 4))
+ax = plt.subplot()
+plt.bar(range(len(protection_counts)),protection_counts.scientific_name.values)
+ax.set_xticks(range(len(protection_counts)))
+ax.set_xticklabels(protection_counts.conservation_status.values)
+plt.ylabel("Number of Species")
+plt.title("Conservation Status by Species")
+labels = [e.get_text() for e in ax.get_xticklabels()]
+
+plt.show()
+
+#Create a new column in species called is_protected, which is True if conservation_status is not equal to 'No Intervention', and False otherwise.
+species['is_protected'] = species.conservation_status != 'No Intervention'
+
+#Now group by both category and is_protected
+category_counts = species.groupby(['category', 'is_protected']).scientific_name.nunique().reset_index()
+print category_counts.head()
+
+#It's going to be easier to view this data if we pivot it. Using pivot, rearrange category_counts: so that:
+#columns is is_protected
+#index is category
+#values is scientific_name
+category_pivot = category_counts.pivot(
+         	index= 'category',
+          columns= 'is_protected',
+          values= 'scientific_name')\
+   .reset_index()
+
+#True and False are pretty vague column names. Let's use the .columns to rename the categories True and False to something more descriptive:
+category_pivot.columns = ['category', 'not_protected', 'protected' ]
+
+#Let's create a new column in category_pivot called percent_protected, which is equal to protected (the number of species that are protected) divided by protected plus not_protected (the total number of species).
+category_pivot['percent_protected'] = category_pivot['protected']/(category_pivot['protected']+category_pivot['not_protected'])*100
+
+print category_pivot
+
+# Inspecting the DataFrame
+species_count = len(species)
+
+species_type = species.category.unique()
+
+conservation_statuses = species.conservation_status.unique()
+
+# Analyze Species Conservation Status
+conservation_counts = species.groupby('conservation_status').scientific_name.count().reset_index()
+
+# print conservation_counts
+
+# Analyze Species Conservation Status II
+species.fillna('No Intervention', inplace = True)
+
+conservation_counts_fixed = species.groupby('conservation_status').scientific_name.count().reset_index()
+
+# Plotting Conservation Status by Species
+protection_counts = species.groupby('conservation_status')\
+    .scientific_name.count().reset_index()\
+    .sort_values(by='scientific_name')
+    
+# plt.figure(figsize=(10, 4))
+# ax = plt.subplot()
+# plt.bar(range(len(protection_counts)),
+#        protection_counts.scientific_name.values)
+# ax.set_xticks(range(len(protection_counts)))
+# ax.set_xticklabels(protection_counts.conservation_status.values)
+# plt.ylabel('Number of Species')
+# plt.title('Conservation Status by Species')
+# labels = [e.get_text() for e in ax.get_xticklabels()]
+# print ax.get_title()
+# plt.show()
+
+species['is_protected'] = species.conservation_status != 'No Intervention'
+
+category_counts = species.groupby(['category', 'is_protected'])\
+                         .scientific_name.count().reset_index()
+  
+# print category_counts.head()
+
+category_pivot = category_counts.pivot(columns='is_protected', index='category', values='scientific_name').reset_index()
+
+#rename the catagories 
+category_pivot.columns = ['category', 'not_protected', 'protected']
+
+#create a new coloumn that calculates the percentage of protected species 
+category_pivot['percent_protected'] = category_pivot.protected / (category_pivot.protected + category_pivot.not_protected)
+
+#Create a table called contingency and fill it with the correct values. You do not need to include column names in the contingency table.
+print category_pivot.head()
+
+#Create a table called contingency and fill it with the correct values. You do not need to include column names in the contingency table.
+contingency = [[30, 146], [75, 413]]
+
+#In order to perform our chi-squared test, we'll need to import the correct function from scipy. Paste the following code and run it:
+from scipy.stats import chi2_contingency
+
+#Run chi2_contingency on the contingency table.
+chi2_stat, pval, dof, t = chi2_contingency(contingency)
+print pval
+
+#It looks like this difference isn't significant!
+#Let's test another. Is the difference between Reptile and Mammal significant?
+#Save the p-value to pval_reptile_mammal.
+reptile_contingency = [[30, 146], [5, 73]]
+chi2_stat, pval_reptile_mammal, dof, t = chi2_contingency(reptile_contingency)
+print pval_reptile_mammal
+
+
+observations = pd.read_csv('observations.csv')
+print observations.head()
+
+species['is_sheep'] = species.common_names.apply(lambda x: 'Sheep' in x) 
+print species.head()
+
+#Select the rows of species where is_sheep is True and save it to the variable species_is_sheep
+species_is_sheep = species[species.is_sheep]
+print species_is_sheep
+
+#Many of the results are actually plants. Select the rows of species where is_sheep is True and category is Mammal. Save the results to the variable sheep_species.
+sheep_species = species[(species.is_sheep) & (species.category == 'Mammal')]
+print sheep_species
+
+#Now merge sheep_species with observations to get a DataFrame with observations of sheep. Save this DataFrame as sheep_observations.
+sheep_observations = pd.merge(sheep_species, observations)
+print sheep_observations.head()
+
+#How many total sheep sightings (across all three species) were made at each national park? Use groupby to get the sum of observations for each park_name. Save your answer to obs_by_park.
+obs_by_park = sheep_observations.groupby('park_name').observations.sum().reset_index()
+print obs_by_park
+
+sheep_observations = observations.merge(sheep_species)
+
+obs_by_park = sheep_observations.groupby('park_name').observations.sum().reset_index()
+
+plt.figure(figsize=(16, 4))
+ax = plt.subplot()
+plt.bar(range(len(obs_by_park.park_name)), obs_by_park.observations)
+ax.set_xticks(range(len(obs_by_park.park_name)))
+ax.set_xticklabels(obs_by_park.park_name)
+plt.ylabel("Number of Observations")
+plt.title("Observations of Sheep per Week")
+
+plt.show()
+
+baseline = 15 
+minimum_detectable_effect = 100 * 5/15
+sample_size_per_variant = 870
+yellowstone_weeks_observing = 870/507.0
+bryce_weeks_observing = 870/250.0
+
+print yellowstone_weeks_observing
+print bryce_weeks_observing
+print minimum_detectable_effect
